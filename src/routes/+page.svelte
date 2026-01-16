@@ -185,7 +185,7 @@
 		>
 			<Input
 				name="q"
-				class="h-16 rounded-full border-input bg-card/80 pl-16 text-2xl shadow-lg ring-offset-background backdrop-blur-sm focus-visible:ring-primary/50"
+				class="h-16 rounded-full border-input bg-card/80 pl-16 shadow-lg ring-offset-background backdrop-blur-sm focus-visible:ring-primary/50 md:text-xl"
 				placeholder="Search Google..."
 			/>
 			<Search
