@@ -1,12 +1,6 @@
 import { env } from '$env/dynamic/private';
 import { config } from '$lib/config';
 
-// Allow self-signed certificates for local Proxmox instances
-// In production, you should import the CA or use a real certificate
-if (process.env.NODE_ENV === 'development') {
-	process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-}
-
 export class ProxmoxClient {
 	private baseUrl: string;
 	private token: string;
