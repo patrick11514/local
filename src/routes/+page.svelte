@@ -8,7 +8,7 @@
 	import * as Icons from 'lucide-svelte';
 	import { Search } from 'lucide-svelte';
 	import type { ComponentType } from 'svelte';
-	import { onDestroy, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 
 	interface RRDData {
 		time: number;
@@ -44,8 +44,6 @@
 		node: {}
 	});
 
-	let interval: ReturnType<typeof setInterval>;
-
 	const fetchData = async () => {
 		try {
 			const res = await fetch('/api/stats');
@@ -59,13 +57,12 @@
 
 	onMount(() => {
 		fetchData();
-		interval = setInterval(fetchData, config.graphs.pollInterval);
-	});
+		const interval = setInterval(fetchData, config.graphs.pollInterval);
 
-	onDestroy(() => {
-		clearInterval(interval);
+		return () => {
+			clearInterval(interval);
+		};
 	});
-
 	// Transform RRD data for graphs
 	// Proxmox RRD data time is in seconds.
 	function formatData(key: string, transform = (v: number) => v) {
@@ -86,8 +83,18 @@
 
 	let currentCpu = $derived(((stats.node?.cpu || 0) * 100).toFixed(1) + '%');
 	let currentMem = $derived(formatBytes(stats.node?.memory?.used || 0));
-	let currentNetIn = $derived(formatSpeed(stats.node?.netin || 0));
-	let currentNetOut = $derived(formatSpeed(stats.node?.netout || 0));
+
+	function getLastRrdValue(key: string) {
+		if (!stats.rrd?.length) return 0;
+		for (let i = stats.rrd.length - 1; i >= 0; i--) {
+			const val = stats.rrd[i][key];
+			if (val != null && !isNaN(val)) return val;
+		}
+		return 0;
+	}
+
+	let currentNetIn = $derived(formatSpeed(getLastRrdValue('netin')));
+	let currentNetOut = $derived(formatSpeed(getLastRrdValue('netout')));
 
 	// Dynamically retrieve icon component
 	function getIcon(name: string): ComponentType | null {
@@ -113,6 +120,7 @@
 			data={cpuData}
 			color="hsl(var(--primary))"
 			id="cpu"
+			formatter={(v) => v.toFixed(1) + '%'}
 		/>
 		<MetricGraph
 			title="Memory Usage"
@@ -120,6 +128,7 @@
 			data={memData}
 			color="hsl(var(--destructive))"
 			id="mem"
+			formatter={(v) => v.toFixed(2) + ' GB'}
 		/>
 		<MetricGraph
 			title="Network In"
@@ -127,6 +136,7 @@
 			data={netInData}
 			color="hsl(var(--accent-foreground))"
 			id="netin"
+			formatter={(v) => formatSpeed(v * 1024 * 1024)}
 		/>
 		<MetricGraph
 			title="Network Out"
@@ -134,6 +144,7 @@
 			data={netOutData}
 			color="hsl(var(--secondary-foreground))"
 			id="netout"
+			formatter={(v) => formatSpeed(v * 1024 * 1024)}
 		/>
 	</div>
 
@@ -145,16 +156,16 @@
 			{@const percent = drive.total ? Math.round((drive.used / drive.total) * 100) : 0}
 			<Card class="border border-input bg-card shadow-lg">
 				<CardHeader class="pb-2">
-					<CardTitle class="text-sm font-medium text-muted-foreground uppercase"
-						>{drive.alias || drive.storage}</CardTitle
-					>
+					<CardTitle class="text-sm font-medium text-muted-foreground uppercase">
+						{drive.alias || drive.storage}
+					</CardTitle>
 				</CardHeader>
 				<CardContent>
 					<div class="mb-2 flex items-end justify-between">
 						<span class="text-2xl font-bold">{percent}%</span>
-						<span class="text-xs text-muted-foreground"
-							>{formatBytes(drive.used)} / {formatBytes(drive.total)}</span
-						>
+						<span class="text-xs text-muted-foreground">
+							{formatBytes(drive.used)} / {formatBytes(drive.total)}
+						</span>
 					</div>
 					<Progress value={percent} class="h-2" />
 				</CardContent>
