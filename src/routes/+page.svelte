@@ -4,6 +4,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Progress } from '$lib/components/ui/progress';
 	import { config } from '$lib/config';
+	import { formatBytes, formatSpeed } from '$lib/utils';
 	import * as Icons from 'lucide-svelte';
 	import { Search } from 'lucide-svelte';
 	import type { ComponentType } from 'svelte';
@@ -60,9 +61,9 @@
 	let netOutData = $derived(formatData('netout', (v) => v / 1024 / 1024)); // Bytes to MB
 
 	let currentCpu = $derived(((stats.node?.cpu || 0) * 100).toFixed(1) + '%');
-	let currentMem = $derived(
-		((stats.node?.memory?.used || 0) / 1024 / 1024 / 1024).toFixed(1) + ' GB'
-	);
+	let currentMem = $derived(formatBytes(stats.node?.memory?.used || 0));
+	let currentNetIn = $derived(formatSpeed(stats.node?.netin || 0));
+	let currentNetOut = $derived(formatSpeed(stats.node?.netout || 0));
 
 	// Dynamically retrieve icon component
 	function getIcon(name: string): ComponentType | null {
@@ -93,15 +94,15 @@
 			id="mem"
 		/>
 		<MetricGraph
-			title="Network In (MB/s)"
-			value={((stats.node?.netin || 0) / 1024 / 1024).toFixed(1)}
+			title="Network In"
+			value={currentNetIn}
 			data={netInData}
 			color="hsl(var(--accent-foreground))"
 			id="netin"
 		/>
 		<MetricGraph
-			title="Network Out (MB/s)"
-			value={((stats.node?.netout || 0) / 1024 / 1024).toFixed(1)}
+			title="Network Out"
+			value={currentNetOut}
 			data={netOutData}
 			color="hsl(var(--secondary-foreground))"
 			id="netout"
@@ -114,7 +115,7 @@
 	>
 		{#each stats.storage as drive}
 			{@const percent = drive.total ? Math.round((drive.used / drive.total) * 100) : 0}
-			<Card class="border-input bg-card/50">
+			<Card class="border border-input bg-card shadow-lg">
 				<CardHeader class="pb-2">
 					<CardTitle class="text-sm font-medium text-muted-foreground uppercase"
 						>{drive.alias || drive.storage}</CardTitle
@@ -124,12 +125,7 @@
 					<div class="mb-2 flex items-end justify-between">
 						<span class="text-2xl font-bold">{percent}%</span>
 						<span class="text-xs text-muted-foreground"
-							>{(drive.used / 1024 / 1024 / 1024).toFixed(0)} GB / {(
-								drive.total /
-								1024 /
-								1024 /
-								1024
-							).toFixed(0)} GB</span
+							>{formatBytes(drive.used)} / {formatBytes(drive.total)}</span
 						>
 					</div>
 					<Progress value={percent} class="h-2" />
@@ -153,7 +149,7 @@
 			/>
 			<Input
 				name="q"
-				class="h-16 rounded-full border-input bg-card/80 pl-16 text-xl shadow-lg ring-offset-background backdrop-blur-sm focus-visible:ring-primary/50"
+				class="h-16 rounded-full border-input bg-card/80 pl-16 text-2xl shadow-lg ring-offset-background backdrop-blur-sm focus-visible:ring-primary/50"
 				placeholder="Search Google..."
 			/>
 		</form>
@@ -163,7 +159,7 @@
 			{#each config.bookmarks as bookmark}
 				<a href={bookmark.url} target="_blank" rel="noreferrer" class="group">
 					<Card
-						class="flex h-32 cursor-pointer flex-col items-center justify-center gap-3 border-none bg-card/40 backdrop-blur-sm transition-all duration-300 group-hover:ring-1 group-hover:ring-primary/20 hover:-translate-y-1 hover:bg-card hover:shadow-xl"
+						class="flex h-32 cursor-pointer flex-col items-center justify-center gap-3 border-none bg-card backdrop-blur-sm transition-all duration-300 group-hover:ring-1 group-hover:ring-primary/20 hover:-translate-y-1 hover:bg-secondary/50 hover:shadow-xl"
 					>
 						{@const Icon = getIcon(bookmark.icon)}
 						<Icon

@@ -26,8 +26,8 @@ export class ProxmoxClient {
 			);
 		} else {
 			// Debug log to confirm token is loaded (masking the secret)
-			const [id, secret] = this.token.split('=');
-			console.log(`Using Proxmox Token ID: ${id}=${secret.substring(0, 4)}***`);
+			// const [id, secret] = this.token.split('=');
+			// console.log(`Using Proxmox Token ID: ${id}=${secret.substring(0, 4)}***`);
 		}
 	}
 
