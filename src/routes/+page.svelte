@@ -10,11 +10,35 @@
 	import type { ComponentType } from 'svelte';
 	import { onDestroy, onMount } from 'svelte';
 
-	let stats = $state<{
-		rrd: any[];
-		storage: any[];
-		node: any;
-	}>({
+	interface RRDData {
+		time: number;
+		[key: string]: number;
+	}
+
+	interface StorageData {
+		storage: string;
+		alias?: string;
+		total: number;
+		used: number;
+	}
+
+	interface NodeData {
+		cpu?: number;
+		memory?: {
+			used: number;
+			total: number;
+		};
+		netin?: number;
+		netout?: number;
+	}
+
+	interface Stats {
+		rrd: RRDData[];
+		storage: StorageData[];
+		node: NodeData;
+	}
+
+	let stats = $state<Stats>({
 		rrd: [],
 		storage: [],
 		node: {}
@@ -47,11 +71,11 @@
 	function formatData(key: string, transform = (v: number) => v) {
 		return (
 			stats.rrd
-				?.map((d: any) => ({
+				?.map((d) => ({
 					x: d.time * 1000,
 					y: transform(d[key] || 0)
 				}))
-				.filter((d: any) => !isNaN(d.y)) || []
+				.filter((d) => !isNaN(d.y)) || []
 		);
 	}
 
@@ -67,10 +91,14 @@
 
 	// Dynamically retrieve icon component
 	function getIcon(name: string): ComponentType | null {
-		// @ts-ignore - Index signature for Icons
-		return ((Icons as any)[name] as ComponentType) || Icons.Link;
+		// @ts-expect-error - Index signature for Icons
+		return ((Icons as Record<string, ComponentType>)[name] as ComponentType) || Icons.Link;
 	}
 </script>
+
+<svelte:head>
+	<title>System Dashboard</title>
+</svelte:head>
 
 <div
 	class="flex min-h-screen w-full flex-col items-center gap-12 bg-background p-4 font-sans text-foreground md:p-8"
@@ -113,7 +141,7 @@
 	<div
 		class="grid w-full max-w-7xl grid-cols-1 gap-4 delay-100 duration-700 animate-in fade-in slide-in-from-bottom-8 md:grid-cols-3"
 	>
-		{#each stats.storage as drive}
+		{#each stats.storage as drive (drive.alias)}
 			{@const percent = drive.total ? Math.round((drive.used / drive.total) * 100) : 0}
 			<Card class="border border-input bg-card shadow-lg">
 				<CardHeader class="pb-2">
@@ -144,19 +172,20 @@
 			method="GET"
 			class="group relative w-full transform transition-all hover:scale-[1.01]"
 		>
-			<Search
-				class="absolute top-1/2 left-6 h-6 w-6 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary"
-			/>
 			<Input
 				name="q"
 				class="h-16 rounded-full border-input bg-card/80 pl-16 text-2xl shadow-lg ring-offset-background backdrop-blur-sm focus-visible:ring-primary/50"
 				placeholder="Search Google..."
 			/>
+			<Search
+				class="pointer-events-none absolute top-1/2 left-6 h-6 w-6 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary"
+			/>
 		</form>
 
 		<!-- Bookmarks Grid -->
 		<div class="grid w-full grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-			{#each config.bookmarks as bookmark}
+			{#each config.bookmarks as bookmark (bookmark.url)}
+				<!-- eslint-disable-next-line -->
 				<a href={bookmark.url} target="_blank" rel="noreferrer" class="group">
 					<Card
 						class="flex h-32 cursor-pointer flex-col items-center justify-center gap-3 border-none bg-card backdrop-blur-sm transition-all duration-300 group-hover:ring-1 group-hover:ring-primary/20 hover:-translate-y-1 hover:bg-secondary/50 hover:shadow-xl"
@@ -167,8 +196,9 @@
 						/>
 						<span
 							class="px-2 text-center text-sm font-medium transition-colors group-hover:text-primary"
-							>{bookmark.title}</span
 						>
+							{bookmark.title}
+						</span>
 					</Card>
 				</a>
 			{/each}

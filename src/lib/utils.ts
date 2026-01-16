@@ -26,5 +26,5 @@ export function formatSpeed(bytesPerSec: number, decimals = 1) {
 	return formatBytes(bytesPerSec, decimals) + '/s';
 }
 
-export type WithElementRef<T = any> = any;
-export type WithoutChildrenOrChild<T = any> = any;
+export type WithElementRef<T> = T & { ref?: unknown };
+export type WithoutChildrenOrChild<T> = T;

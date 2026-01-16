@@ -26,8 +26,9 @@ export async function GET() {
 			rrd: rrdData,
 			storage: storageStats
 		});
-	} catch (err: any) {
+	} catch (err) {
+		const message = err instanceof Error ? err.message : 'Unknown error';
 		console.error('API Error:', err);
-		return json({ error: err.message }, { status: 500 });
+		return json({ error: message }, { status: 500 });
 	}
 }
