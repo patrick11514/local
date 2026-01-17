@@ -9,40 +9,11 @@
 	import { Search } from 'lucide-svelte';
 	import type { ComponentType } from 'svelte';
 	import { onMount } from 'svelte';
+	import type { PageData } from './$types';
 
-	interface RRDData {
-		time: number;
-		[key: string]: number;
-	}
+	let { data }: { data: PageData } = $props();
 
-	interface StorageData {
-		storage: string;
-		alias?: string;
-		total: number;
-		used: number;
-	}
-
-	interface NodeData {
-		cpu?: number;
-		memory?: {
-			used: number;
-			total: number;
-		};
-		netin?: number;
-		netout?: number;
-	}
-
-	interface Stats {
-		rrd: RRDData[];
-		storage: StorageData[];
-		node: NodeData;
-	}
-
-	let stats = $state<Stats>({
-		rrd: [],
-		storage: [],
-		node: {}
-	});
+	let stats = $derived(data.stats);
 
 	const fetchData = async () => {
 		try {
@@ -56,7 +27,6 @@
 	};
 
 	onMount(() => {
-		fetchData();
 		const interval = setInterval(fetchData, config.graphs.pollInterval);
 
 		return () => {
@@ -77,9 +47,9 @@
 	}
 
 	let cpuData = $derived(formatData('cpu', (v) => v * 100)); // 0-1 to %
-	let memData = $derived(formatData('mem', (v) => v / 1024 / 1024 / 1024)); // Bytes to GB
-	let netInData = $derived(formatData('netin', (v) => v / 1024 / 1024)); // Bytes to MB
-	let netOutData = $derived(formatData('netout', (v) => v / 1024 / 1024)); // Bytes to MB
+	let memData = $derived(formatData('memused')); // Raw Bytes
+	let netInData = $derived(formatData('netin')); // Raw Bytes
+	let netOutData = $derived(formatData('netout')); // Raw Bytes
 
 	let currentCpu = $derived(((stats.node?.cpu || 0) * 100).toFixed(1) + '%');
 	let currentMem = $derived(formatBytes(stats.node?.memory?.used || 0));
@@ -108,12 +78,10 @@
 </svelte:head>
 
 <div
-	class="flex min-h-screen w-full flex-col items-center gap-12 bg-background p-4 font-sans text-foreground md:p-8"
+	class="flex min-h-screen w-full flex-col items-center gap-12 bg-background p-4 font-sans text-foreground"
 >
 	<!-- Top Section: System Dashboard -->
-	<div
-		class="grid w-full max-w-7xl grid-cols-1 gap-4 duration-700 animate-in fade-in slide-in-from-bottom-4 md:grid-cols-2 lg:grid-cols-4"
-	>
+	<div class="grid w-full max-w-7xl grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
 		<MetricGraph
 			title="CPU Usage"
 			value={currentCpu}
@@ -128,7 +96,7 @@
 			data={memData}
 			color="hsl(var(--destructive))"
 			id="mem"
-			formatter={(v) => v.toFixed(2) + ' GB'}
+			formatter={(v) => formatBytes(v)}
 		/>
 		<MetricGraph
 			title="Network In"
@@ -136,7 +104,7 @@
 			data={netInData}
 			color="hsl(var(--accent-foreground))"
 			id="netin"
-			formatter={(v) => formatSpeed(v * 1024 * 1024)}
+			formatter={(v) => formatSpeed(v)}
 		/>
 		<MetricGraph
 			title="Network Out"
@@ -144,14 +112,12 @@
 			data={netOutData}
 			color="hsl(var(--secondary-foreground))"
 			id="netout"
-			formatter={(v) => formatSpeed(v * 1024 * 1024)}
+			formatter={(v) => formatSpeed(v)}
 		/>
 	</div>
 
 	<!-- Disk Usage Section -->
-	<div
-		class="grid w-full max-w-7xl grid-cols-1 gap-4 delay-100 duration-700 animate-in fade-in slide-in-from-bottom-8 md:grid-cols-3"
-	>
+	<div class="grid w-full max-w-7xl grid-cols-1 gap-4 md:grid-cols-3">
 		{#each stats.storage as drive (drive.alias)}
 			{@const percent = drive.total ? Math.round((drive.used / drive.total) * 100) : 0}
 			<Card class="border border-input bg-card shadow-lg">
@@ -174,9 +140,7 @@
 	</div>
 
 	<!-- Middle Section: Search & Navigation -->
-	<div
-		class="mt-10 flex w-full max-w-3xl flex-col items-center gap-10 delay-200 duration-700 animate-in zoom-in-95"
-	>
+	<div class="mt-10 flex w-full max-w-3xl flex-col items-center gap-10">
 		<!-- Google Search -->
 		<form
 			action="https://google.com/search"

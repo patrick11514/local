@@ -43,11 +43,11 @@
 					</linearGradient>
 				</defs>
 				<Area
-					line={{ stroke: color, strokeWidth: 2 }}
+					line={{ stroke: color, strokeWidth: 2, fill: 'none' }}
 					fill="url(#{id}-gradient)"
 					curve={curveBasis}
 				/>
-				<Highlight points lines={{ stroke: color, strokeWidth: 2 }} />
+				<Highlight points={{ fill: color }} lines={{ stroke: color, strokeWidth: 2 }} />
 			</Svg>
 
 			<Tooltip.Root let:data>

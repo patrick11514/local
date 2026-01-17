@@ -1,5 +1,15 @@
 import { env } from '$env/dynamic/private';
 import { config } from '$lib/config';
+import type { Stats } from '../../types/types';
+
+// 1. Check if it's set in the process (e.g. from CLI) or in .env file via SvelteKit
+const allowInsecure =
+	process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0' || env.NODE_TLS_REJECT_UNAUTHORIZED === '0';
+
+// 2. Explicitly apply it to the process for the Node.js TLS stack to pick it up
+if (allowInsecure) {
+	process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
 
 export class ProxmoxClient {
 	private baseUrl: string;
@@ -73,3 +83,28 @@ export class ProxmoxClient {
 }
 
 export const proxmox = new ProxmoxClient();
+
+export async function getSystemStats() {
+	const [nodeStatus, rrdData, ...storageStats] = await Promise.all([
+		proxmox.getNodeStatus(),
+		proxmox.getNetworkStats(),
+		...config.graphs.drives.map((drive) =>
+			proxmox
+				.getStorageStatus(drive.id)
+				.then((data) => ({ ...data, alias: drive.alias }))
+				.catch((e) => ({
+					storage: drive.id,
+					alias: drive.alias,
+					total: 0,
+					used: 0,
+					error: e instanceof Error ? e.message : String(e)
+				}))
+		)
+	]);
+
+	return {
+		node: nodeStatus,
+		rrd: rrdData,
+		storage: storageStats
+	} as Stats;
+}
