@@ -71,6 +71,10 @@
 		// @ts-expect-error - Index signature for Icons
 		return ((Icons as Record<string, ComponentType>)[name] as ComponentType) || Icons.Link;
 	}
+
+	function focus(node: HTMLInputElement) {
+		node.focus();
+	}
 </script>
 
 <svelte:head>
@@ -151,6 +155,8 @@
 				name="q"
 				class="h-16 rounded-full border-input bg-card/80 pl-16 shadow-lg ring-offset-background backdrop-blur-sm focus-visible:ring-primary/50 md:text-xl"
 				placeholder="Search Google..."
+				autofocus
+				{@attach focus}
 			/>
 			<Search
 				class="pointer-events-none absolute top-1/2 left-6 h-6 w-6 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary"
