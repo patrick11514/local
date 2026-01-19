@@ -122,6 +122,30 @@
 		return /^[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+(:[0-9]+)?(\/.*)?$/.test(str) && !str.includes(' ');
 	}
 
+	function handlePaste(e: ClipboardEvent) {
+		if (!showHistoryModal) return;
+		// Don't interfere if user is pasting into an input element
+		if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+			return;
+		}
+
+		e.preventDefault();
+		const text = e.clipboardData?.getData('text');
+		if (!text) return;
+
+		const urls = text
+			.split('\n')
+			.map((s) => s.trim())
+			.filter((s) => s.length > 0);
+
+		if (urls.length > 0) {
+			if (confirm(`Import ${urls.length} items from clipboard?`)) {
+				historyStorage.addBulk(urls);
+				loadHistory();
+			}
+		}
+	}
+
 	function handleSearch(e: Event) {
 		e.preventDefault();
 		const query = searchQuery.trim();
@@ -221,6 +245,8 @@
 <svelte:head>
 	<title>System Dashboard</title>
 </svelte:head>
+
+<svelte:window onpaste={handlePaste} />
 
 <div
 	class="flex min-h-screen w-full flex-col items-center gap-12 bg-background p-4 font-sans text-foreground"
