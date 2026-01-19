@@ -1,8 +1,9 @@
-Always after completing actions, you should run:
+Always after completing actions, you should run these two commands:
 
 - `pnpm check` - check types
 - `pnpm lint` - check file formatting + eslint errors
-- `pnpm format` - if some file is formatted badly (reported by pnpm lint)
+
+If any formatting errors are reported, run: `pnpm format`
 
 When fixing "Unexpected href link without resolve()" errors:
 
